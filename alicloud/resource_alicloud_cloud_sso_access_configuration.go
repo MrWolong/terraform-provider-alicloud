@@ -1,7 +1,10 @@
 package alicloud
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"hash/crc32"
 	"log"
 	"regexp"
 	"time"
@@ -61,6 +64,29 @@ func resourceAliCloudCloudSsoAccessConfiguration() *schema.Resource {
 			"permission_policies": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					policy := v.(map[string]interface{})
+					if v, ok := policy["permission_policy_type"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+					}
+					if v, ok := policy["permission_policy_name"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+					}
+					if v, ok := policy["permission_policy_document"]; ok {
+						buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+					}
+					return int(crc32.ChecksumIEEE([]byte(buf.String())))
+				},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					log.Println("policies中的原k：", k)
+					log.Println("policies中的原old：", old)
+					log.Println("policies中的原new：", new)
+					log.Println("policies中的原d.Get(k)：", d.Get(k))
+					log.Println("policies中的原old != new：", old != new)
+					log.Println("policies中的原old != d.Get(k)：", old != d.Get(k))
+					return false
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"permission_policy_type": {
@@ -73,8 +99,30 @@ func resourceAliCloudCloudSsoAccessConfiguration() *schema.Resource {
 							Required: true,
 						},
 						"permission_policy_document": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.ValidateJsonString,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								log.Println("document中的原k：", k)
+								log.Println("document中的原old：", old)
+								log.Println("document中的原new：", new)
+								log.Println("document中的原d.Get(k)：", d.Get(k))
+								log.Println("document中的原old != new：", old != new)
+								log.Println("document中的原old != d.Get(k)：", old != d.Get(k))
+								//if old != "" && new != "" && old != new {
+								//	log.Println("原old：", old)
+								//	log.Println("原new：", new)
+								//	log.Println("原old != new：", old != new)
+								//	old = Trim(strings.Replace(old, "\n", "", -1))
+								//	new = Trim(strings.Replace(new, "\n", "", -1))
+								//	log.Println("优化old：", old)
+								//	log.Println("优化new：", new)
+								//	log.Println("优化old != new：", old != new)
+								//	equal, _ := compareJsonTemplateAreEquivalent(old, new)
+								//	log.Println("equal：", equal)
+								//}
+								return false
+							},
 						},
 					},
 				},
