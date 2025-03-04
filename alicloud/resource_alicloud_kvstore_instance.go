@@ -1218,6 +1218,7 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return WrapError(err)
 	}
+
 	modifyInstanceSpecReq := map[string]interface{}{
 		"RegionId":   client.RegionId,
 		"AutoPay":    true,
@@ -1231,7 +1232,7 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	}
 	// read_only_count and slave_read_only_count may be changed after other attributes changed, like secondary_zone_id
 	// and ReadOnlyCount and SlaveReadOnlyCount can not be changed together
-	if !d.IsNewResource() && (d.HasChange("read_only_count") || fmt.Sprint(object["ReadOnlyCount"]) != fmt.Sprint(d.Get("read_only_count"))) {
+	if !d.IsNewResource() && (d.HasChange("read_only_count") || (object["ReadOnlyCount"] != nil && (fmt.Sprint(object["ReadOnlyCount"]) != fmt.Sprint(d.Get("read_only_count"))))) {
 		update = true
 
 		if v, ok := d.GetOkExists("read_only_count"); ok {
@@ -1271,9 +1272,10 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, modifyInstanceSpecReq)
 			return nil
 		})
+		addDebug(action, response, modifyInstanceSpecReq)
+
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -1296,13 +1298,16 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		}
 	}
 
-	if !d.IsNewResource() && (d.HasChange("slave_read_only_count") || fmt.Sprint(object["SlaveReadOnlyCount"]) != fmt.Sprint(d.Get("slave_read_only_count"))) {
+	if !d.IsNewResource() && (d.HasChange("slave_read_only_count") || (object["SlaveReadOnlyCount"] != nil && (fmt.Sprint(object["SlaveReadOnlyCount"]) != fmt.Sprint(d.Get("slave_read_only_count"))))) {
 		update = true
-		if v, ok := d.GetOk("slave_read_only_count"); ok {
+		if v, ok := d.GetOkExists("slave_read_only_count"); ok {
 			modifyInstanceSpecReq["SlaveReadOnlyCount"] = v
 		}
+
 		delete(modifyInstanceSpecReq, "ReadOnlyCount")
+
 		action := "ModifyInstanceSpec"
+
 		wait := incrementalWait(3*time.Second, 3*time.Second)
 		err = resource.Retry(client.GetRetryTimeout(d.Timeout(schema.TimeoutUpdate)), func() *resource.RetryError {
 			response, err = client.RpcPost("R-kvstore", "2015-01-01", action, nil, modifyInstanceSpecReq, false)
@@ -1313,9 +1318,10 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, modifyInstanceSpecReq)
 			return nil
 		})
+		addDebug(action, response, modifyInstanceSpecReq)
+
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
@@ -1334,7 +1340,7 @@ func resourceAliCloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	update = false
 	modifyInstanceMajorVersionReq := r_kvstore.CreateModifyInstanceMajorVersionRequest()
 	modifyInstanceMajorVersionReq.InstanceId = d.Id()
-	if !d.IsNewResource() && d.HasChange("engine_version") && !d.HasChange("instance_class") {
+	if !d.IsNewResource() && d.HasChange("engine_version") {
 		update = true
 	}
 
