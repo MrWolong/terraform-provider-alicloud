@@ -41,7 +41,23 @@ func resourceAliCloudMessageServiceTopic() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: IntBetween(1024, 65536),
 			},
-			"tags": tagsSchema(),
+			"enable_sse": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"sse_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"sse_algorithm": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"kms_key_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"tags": tagsSchemaWithElements(),
 			"topic_name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -83,6 +99,18 @@ func resourceAliCloudMessageServiceTopicCreate(d *schema.ResourceData, meta inte
 	}
 	if v, ok := d.GetOkExists("max_message_size"); ok {
 		request["MaxMessageSize"] = v
+	}
+	if v, ok := d.GetOkExists("enable_sse"); ok {
+		request["EnableSSE"] = v
+	}
+	if v, ok := d.GetOk("sse_type"); ok {
+		request["SseType"] = v
+	}
+	if v, ok := d.GetOk("sse_algorithm"); ok {
+		request["SseAlgorithm"] = v
+	}
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		request["KmsKeyId"] = v
 	}
 	if v, ok := d.GetOk("topic_type"); ok {
 		request["TopicType"] = v
@@ -132,6 +160,10 @@ func resourceAliCloudMessageServiceTopicRead(d *schema.ResourceData, meta interf
 	d.Set("create_time", objectRaw["CreateTime"])
 	d.Set("enable_logging", objectRaw["LoggingEnabled"])
 	d.Set("max_message_size", objectRaw["MaxMessageSize"])
+	d.Set("enable_sse", objectRaw["EnableSSE"])
+	d.Set("sse_type", objectRaw["SseType"])
+	d.Set("sse_algorithm", objectRaw["SseAlgorithm"])
+	d.Set("kms_key_id", objectRaw["KmsKeyId"])
 	d.Set("topic_name", objectRaw["TopicName"])
 	d.Set("topic_type", objectRaw["TopicType"])
 	d.Set("logging_enabled", objectRaw["LoggingEnabled"])
@@ -176,6 +208,38 @@ func resourceAliCloudMessageServiceTopicUpdate(d *schema.ResourceData, meta inte
 
 		if v, ok := d.GetOkExists("max_message_size"); ok {
 			request["MaxMessageSize"] = v
+		}
+	}
+
+	if d.HasChange("enable_sse") {
+		update = true
+
+		if v, ok := d.GetOkExists("enable_sse"); ok {
+			request["EnableSSE"] = v
+		}
+	}
+
+	if d.HasChange("sse_type") {
+		update = true
+
+		if v, ok := d.GetOk("sse_type"); ok {
+			request["SseType"] = v
+		}
+	}
+
+	if d.HasChange("sse_algorithm") {
+		update = true
+
+		if v, ok := d.GetOk("sse_algorithm"); ok {
+			request["SseAlgorithm"] = v
+		}
+	}
+
+	if d.HasChange("kms_key_id") {
+		update = true
+
+		if v, ok := d.GetOk("kms_key_id"); ok {
+			request["KmsKeyId"] = v
 		}
 	}
 
