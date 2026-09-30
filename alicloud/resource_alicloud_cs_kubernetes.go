@@ -439,10 +439,7 @@ func resourceAlicloudCSKubernetes() *schema.Resource {
 				},
 			},
 			// lintignore: S006
-			"tags": {
-				Type:     schema.TypeMap,
-				Optional: true,
-			},
+			"tags": tagsSchemaWithElements(),
 			"slb_internet_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
