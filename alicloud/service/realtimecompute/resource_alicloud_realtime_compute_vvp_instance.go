@@ -197,12 +197,14 @@ func resourceAliCloudRealtimeComputeVvpInstanceCreate(d *schema.ResourceData, me
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
+	request["Region"] = client.RegionId
 
-	request["CreateInstanceRequest.VpcId"] = d.Get("vpc_id")
-	objectDataLocalMap := make(map[string]interface{})
-	if v, ok := d.GetOk("vpc_id"); ok {
-		objectDataLocalMap["VpcId"] = v
+	if v, ok := d.GetOkExists("duration"); ok {
+		request["Duration"] = v
 	}
+
+	request["VpcId"] = d.Get("vpc_id")
+
 	if v := d.Get("storage"); !helper.IsNil(v) {
 		storage := make(map[string]interface{})
 		oss := make(map[string]interface{})
@@ -211,16 +213,15 @@ func resourceAliCloudRealtimeComputeVvpInstanceCreate(d *schema.ResourceData, me
 			oss["Bucket"] = nodeNative1
 		}
 		storage["Oss"] = oss
-		objectDataLocalMap["Storage"] = storage
+		request["Storage"] = storage
 	}
 	if v, ok := d.GetOk("zone_id"); ok {
-		objectDataLocalMap["ZoneId"] = v
+		request["ZoneId"] = v
 	}
-	objectDataLocalMap["Region"] = client.RegionId
 	if v, ok := d.GetOk("vswitch_ids"); ok {
 		nodeNative4, _ := jsonpath.Get("$", v)
 		if nodeNative4 != "" {
-			objectDataLocalMap["VSwitchIds"] = nodeNative4
+			request["VSwitchIds"] = nodeNative4
 		}
 	}
 	if v := d.Get("resource_spec"); !helper.IsNil(v) {
@@ -233,51 +234,43 @@ func resourceAliCloudRealtimeComputeVvpInstanceCreate(d *schema.ResourceData, me
 		if nodeNative6 != "" {
 			resourceSpec["MemoryGB"] = nodeNative6
 		}
-		objectDataLocalMap["ResourceSpec"] = resourceSpec
+		request["ResourceSpec"] = resourceSpec
 	}
 	if v, ok := d.GetOk("vvp_instance_name"); ok {
-		objectDataLocalMap["InstanceName"] = v
+		request["InstanceName"] = v
 	}
 	if v, ok := d.GetOk("pricing_cycle"); ok {
-		objectDataLocalMap["PricingCycle"] = v
-	}
-	if v, ok := d.GetOk("duration"); ok {
-		objectDataLocalMap["Duration"] = v
+		request["PricingCycle"] = v
 	}
 	if v, ok := d.GetOk("resource_group_id"); ok {
-		objectDataLocalMap["ResourceGroupId"] = v
+		request["ResourceGroupId"] = v
 	}
-	if v, ok := d.GetOk("payment_type"); ok {
-		objectDataLocalMap["ChargeType"] = convertRealtimeComputeCreateInstanceRequestChargeTypeRequest(v)
-	}
-	request["CreateInstanceRequest"] = objectDataLocalMap
-	request["CreateInstanceRequest.ZoneId"] = d.Get("zone_id")
-	request["CreateInstanceRequest.InstanceName"] = d.Get("vvp_instance_name")
+	request["ZoneId"] = d.Get("zone_id")
+	request["InstanceName"] = d.Get("vvp_instance_name")
 	if v, ok := d.GetOk("pricing_cycle"); ok {
-		request["CreateInstanceRequest.PricingCycle"] = v
-	}
-	if v, ok := d.GetOk("duration"); ok {
-		request["CreateInstanceRequest.Duration"] = v
+		request["PricingCycle"] = v
 	}
 	if v, ok := d.GetOk("resource_group_id"); ok {
-		request["CreateInstanceRequest.ResourceGroupId"] = v
+		request["ResourceGroupId"] = v
 	}
+
 	if v := d.Get("default_namespace_resource_spec"); !helper.IsNil(v) {
-		resourceSpec := make(map[string]interface{})
+		defaultNamespaceResourceSpec := make(map[string]interface{})
 		nodeNative7, _ := jsonpath.Get("$[0].cpu", v)
 		if nodeNative7 != "" {
-			resourceSpec["Cpu"] = nodeNative7
+			defaultNamespaceResourceSpec["Cpu"] = nodeNative7
 		}
 		nodeNative8, _ := jsonpath.Get("$[0].memory_gb", v)
 		if nodeNative8 != "" {
-			resourceSpec["MemoryGB"] = nodeNative8
+			defaultNamespaceResourceSpec["MemoryGB"] = nodeNative8
 		}
-		objectDataLocalMap["DefaultNamespaceResourceSpec"] = resourceSpec
+		request["DefaultNamespaceResourceSpec"] = defaultNamespaceResourceSpec
 	}
-	request["CreateInstanceRequest.ChargeType"] = convertRealtimeComputeCreateInstanceRequestChargeTypeRequest(d.Get("payment_type").(string))
+
+	request["ChargeType"] = convertRealtimeComputeCreateInstanceRequestChargeTypeRequest(d.Get("payment_type").(string))
 	wait := helper.IncrementalWait(3*time.Second, 5*time.Second)
 	err = retry.Retry(d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
-		response, err = client.RpcPost("foasconsole", "2019-06-01", action, query, request, true)
+		response, err = client.RpcPost("foasconsole", "2021-10-28", action, query, request, true)
 
 		if err != nil {
 			if helper.NeedRetry(err) || errs.IsExpectedErrors(err, []string{"998001", "Invoke ABM failed"}) {
@@ -398,12 +391,13 @@ func resourceAliCloudRealtimeComputeVvpInstanceUpdate(d *schema.ResourceData, me
 	var query map[string]interface{}
 	update := false
 	d.Partial(true)
-	action := "ModifyPrepayInstanceSpec"
+	action := "ModifyInstanceSpec"
 	var err error
 	request = make(map[string]interface{})
 	query = make(map[string]interface{})
-	request["ModifyPrepayInstanceSpecRequest.InstanceId"] = d.Id()
-	objectDataLocalMap := make(map[string]interface{})
+	request["InstanceId"] = d.Id()
+	request["Region"] = client.RegionId
+
 	if d.HasChange("resource_spec") {
 		update = true
 		if v := d.Get("resource_spec"); !helper.IsNil(v) {
@@ -416,18 +410,14 @@ func resourceAliCloudRealtimeComputeVvpInstanceUpdate(d *schema.ResourceData, me
 			if nodeNative1 != "" {
 				resourceSpec["MemoryGB"] = nodeNative1
 			}
-			objectDataLocalMap["ResourceSpec"] = resourceSpec
+			request["ResourceSpec"] = resourceSpec
 		}
 	}
-	if d.HasChange("region_id") {
-		update = true
-	}
-	objectDataLocalMap["Region"] = client.RegionId
-	request["ModifyPrepayInstanceSpecRequest"] = objectDataLocalMap
+
 	if update {
 		wait := helper.IncrementalWait(3*time.Second, 5*time.Second)
 		err = retry.Retry(d.Timeout(schema.TimeoutUpdate), func() *retry.RetryError {
-			response, err = client.RpcPost("foasconsole", "2019-06-01", action, query, request, true)
+			response, err = client.RpcPost("foasconsole", "2021-10-28", action, query, request, true)
 
 			if err != nil {
 				if helper.NeedRetry(err) {
@@ -511,12 +501,12 @@ func resourceAliCloudRealtimeComputeVvpInstanceDelete(d *schema.ResourceData, me
 	query := make(map[string]interface{})
 	var err error
 	request = make(map[string]interface{})
-	request["DeleteInstanceRequest.InstanceId"] = d.Id()
-	request["DeleteInstanceRequest.Region"] = client.RegionId
+	request["InstanceId"] = d.Id()
+	request["Region"] = client.RegionId
 
 	wait := helper.IncrementalWait(3*time.Second, 5*time.Second)
 	err = retry.Retry(d.Timeout(schema.TimeoutDelete), func() *retry.RetryError {
-		response, err = client.RpcPost("foasconsole", "2019-06-01", action, query, request, true)
+		response, err = client.RpcPost("foasconsole", "2021-10-28", action, query, request, true)
 
 		if err != nil {
 			if helper.NeedRetry(err) {
